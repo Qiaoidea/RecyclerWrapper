@@ -5,7 +5,6 @@ import android.support.annotation.Nullable;
 import android.support.v7.app.AppCompatActivity;
 import android.support.v7.widget.LinearLayoutManager;
 import android.support.v7.widget.RecyclerView;
-import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.Checkable;
@@ -14,11 +13,11 @@ import android.widget.TextView;
 
 import me.qiao.demo.R;
 import me.qiao.demo.footer.PacmanLoadingView;
-import me.qiao.demo.header.RefreshHeader;
+import me.qiao.demo.header.HorizantalRefreshHeader;
 import me.qiao.wrapper.RecyclerWrapper;
 
 
-public class ListActivity extends AppCompatActivity implements RecyclerWrapper.onRefreshListener,
+public class horizantalListActivity extends AppCompatActivity implements RecyclerWrapper.onRefreshListener,
         RecyclerWrapper.onLoadMoreListener{
 
     RecyclerView mRecyclerView;
@@ -32,8 +31,8 @@ public class ListActivity extends AppCompatActivity implements RecyclerWrapper.o
         setContentView(mRecyclerView);
 
         RecyclerWrapper.bindOn(mRecyclerView)
-                .layoutBy(new LinearLayoutManager(this))
-                .withRefreshHeader(new RefreshHeader(this),this)
+                .layoutBy(new LinearLayoutManager(this,LinearLayoutManager.HORIZONTAL,false))
+                .withRefreshHeader(new HorizantalRefreshHeader(this),this)
                 .withLoadMoreFooter(loadingView = new PacmanLoadingView(this),this)
                 .setAdapter(mAdapter)
                 .build();
@@ -71,12 +70,17 @@ public class ListActivity extends AppCompatActivity implements RecyclerWrapper.o
 
         @Override
         public RecyclerView.ViewHolder onCreateViewHolder(ViewGroup parent, int viewType) {
-                return new ImageHolder(LayoutInflater.from(ListActivity.this).inflate(R.layout.list_item_image,parent,false));
+                ImageView imageView = new ImageView(horizantalListActivity.this);
+                imageView.setImageResource(R.mipmap.ic_launcher);
+//                return new ImageHolder(LayoutInflater.from(ListActivity.this).inflate(R.layout.list_item_image,parent,false));
+            return new RecyclerView.ViewHolder(imageView){
+
+            };
         }
 
         @Override
         public void onBindViewHolder(RecyclerView.ViewHolder holder, int position) {
-                ((ImageHolder)holder).bindData("item"+position);
+//                ((ImageHolder)holder).bindData("item"+position);
         }
 
         @Override

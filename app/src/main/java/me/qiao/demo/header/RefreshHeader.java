@@ -92,8 +92,8 @@ public class RefreshHeader extends LinearLayout implements IRefreshHeader{
     }
 
     @Override
-    public void onVisibleHeightChanged(int visibleHeight){
-//        Log.e("onVisibleHeightChanged", "visibleHeight:"+visibleHeight);
+    public void onVisibleScopeChanged(int visibleHeight){
+//        Log.e("onVisibleScopeChanged", "visibleHeight:"+visibleHeight);
 //        view.setText("isRedy:"+(visibleHeight>getHeight()/2));
 
         final int translateY = (textView.getHeight()-visibleHeight)/2;
@@ -117,6 +117,11 @@ public class RefreshHeader extends LinearLayout implements IRefreshHeader{
         }else if(!isEnughToRefresh && ViewCompat.getRotation(imageView)!=0){
             ViewCompat.setRotation(imageView, 0);
         }
+    }
+
+    @Override
+    public boolean isEnughToRefresh() {
+        return isEnughToRefresh;
     }
 
     @Override

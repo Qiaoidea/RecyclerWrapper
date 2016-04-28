@@ -77,7 +77,7 @@ public class MainActivity_old extends AppCompatActivity {
             if(isHeaderShown()){
                 final int invisibleHeight = caculate(scrollY +dy,0,mRefreshHeader.getHeight());
                 visibleHeaderHeight = mRefreshHeader.getHeight() - invisibleHeight;
-                mRefreshHeader.onVisibleHeightChanged(visibleHeaderHeight);
+                mRefreshHeader.onVisibleScopeChanged(visibleHeaderHeight);
             }
             scrollY += dy;
 //            Log.i("MainActivity_onScrolled", " scrollY:"+scrollY);

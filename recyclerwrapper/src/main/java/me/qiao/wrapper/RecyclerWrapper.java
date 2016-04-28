@@ -2,6 +2,8 @@ package me.qiao.wrapper;
 
 import android.os.Build;
 import android.support.v7.widget.GridLayoutManager;
+import android.support.v7.widget.LinearLayoutManager;
+import android.support.v7.widget.OrientationHelper;
 import android.support.v7.widget.RecyclerView;
 import android.support.v7.widget.StaggeredGridLayoutManager;
 import android.view.View;
@@ -17,13 +19,14 @@ import java.util.List;
 public class RecyclerWrapper{
     private RecyclerView mRecyclerView;
     private RecyclerView.LayoutManager mLayoutManager;
+    private int mOrientation = OrientationHelper.VERTICAL;
 
     /**
      * 下拉刷新相关
      */
     private View mRefreshHeader;
     private IRefreshHeader iRefreshHeader;
-    private int visibleHeaderHeight;
+    private int visibleHeaderScope;
     private onRefreshListener onRefreshListener;
     private boolean isRefreshing;
 
@@ -103,10 +106,19 @@ public class RecyclerWrapper{
      */
     private void wrapSpanLook(){
         if (mLayoutManager instanceof GridLayoutManager) {
+            final GridLayoutManager layoutManager = (GridLayoutManager) mLayoutManager;
+            mOrientation = layoutManager.getOrientation();
+
             final SpanSizeLookupGridWrapper wrapperSpanSizeLookup = new SpanSizeLookupGridWrapper(
-                    ((GridLayoutManager) mLayoutManager), mAdapter);
-            ((GridLayoutManager) mLayoutManager).setSpanSizeLookup(wrapperSpanSizeLookup);
+                    layoutManager, mAdapter);
+            layoutManager.setSpanSizeLookup(wrapperSpanSizeLookup);
+
+        } else if(mLayoutManager instanceof LinearLayoutManager){
+            mOrientation = ((LinearLayoutManager)mLayoutManager).getOrientation();
+
         } else if(mLayoutManager instanceof StaggeredGridLayoutManager) {
+            mOrientation = ((StaggeredGridLayoutManager)mLayoutManager).getOrientation();
+
             StaggeredGridLayoutManager.LayoutParams lp = new StaggeredGridLayoutManager
                     .LayoutParams(StaggeredGridLayoutManager.LayoutParams.MATCH_PARENT,
                     StaggeredGridLayoutManager.LayoutParams.WRAP_CONTENT);
@@ -131,7 +143,7 @@ public class RecyclerWrapper{
     private Callbaclk mRefreshCompleteCallback = new Callbaclk() {
         @Override
         public void onComplete(List data) {
-            mRecyclerView.smoothScrollBy(0,visibleHeaderHeight);
+            smoothScrollBy(visibleHeaderScope);
             isRefreshing = false;
             if(null!=iRefreshHeader)iRefreshHeader.onComplete();
         }
@@ -143,25 +155,42 @@ public class RecyclerWrapper{
         }
     };
 
+    private void smoothScrollBy(int distance){
+        switch (mOrientation){
+            case OrientationHelper.HORIZONTAL:
+                mRecyclerView.smoothScrollBy(distance,0);
+                break;
+            case OrientationHelper.VERTICAL:
+                mRecyclerView.smoothScrollBy(0,distance);
+                break;
+        }
+    }
+
     /**
      * 滚动事件监听
      */
     RecyclerView.OnScrollListener mOnScrollerListener = new RecyclerView.OnScrollListener() {
 
-        private int scrollY =0;
+        private int scrollX,scrollY;
 
         @Override
         public void onScrollStateChanged(RecyclerView recyclerView, int newState) {
             super.onScrollStateChanged(recyclerView, newState);
             if(newState == RecyclerView.SCROLL_STATE_IDLE){
                 //如果当前正在刷新就不再次调用
-                if(!isRefreshing && isHeaderShown()){
-                    //当手势停止的时候如果HeaderView显示超过一半，视为下拉刷新
-                    if(visibleHeaderHeight>=mRefreshHeader.getHeight()/2) {
-                        mRecyclerView.smoothScrollBy(0,visibleHeaderHeight-mRefreshHeader.getHeight());
-                        onRefresh();
-                    }else{
-                        mRecyclerView.smoothScrollBy(0,visibleHeaderHeight);
+                if(isHeaderShown()){
+                    final int scope = (mOrientation==OrientationHelper.HORIZONTAL)?
+                            mRefreshHeader.getWidth()
+                            :mRefreshHeader.getHeight();
+                    if(isRefreshing){
+                        smoothScrollBy(visibleHeaderScope-scope);
+                    }else {
+                        if (isEnughToRefresh(scope)) {
+                            smoothScrollBy(visibleHeaderScope - scope);
+                            onRefresh();
+                        } else {
+                            smoothScrollBy(visibleHeaderScope);
+                        }
                     }
                 }
 //                Log.e("Main_isHeaderShown", " "+isHeaderShown());
@@ -171,13 +200,46 @@ public class RecyclerWrapper{
         @Override
         public void onScrolled(RecyclerView recyclerView, int dx, int dy) {
             super.onScrolled(recyclerView, dx, dy);
-            if(isHeaderShown()){
-                final int invisibleHeight = caculate(scrollY +dy,0,mRefreshHeader.getHeight());
-                visibleHeaderHeight = mRefreshHeader.getHeight() - invisibleHeight;
-                if(null!=iRefreshHeader)iRefreshHeader.onVisibleHeightChanged(visibleHeaderHeight);
+            switch (mOrientation){
+                case OrientationHelper.HORIZONTAL:
+                    handleHorizantalScroll(dx);
+                    break;
+                case OrientationHelper.VERTICAL:
+                    handleVerticalScroll(dy);
+                    break;
             }
-            scrollY += dy;
 //            Log.i("MainActivity_onScrolled", " scrollY:"+scrollY);
+        }
+
+        private void handleHorizantalScroll(int distance){
+            final int width = mRefreshHeader.getWidth();
+            if(isHeaderShown(scrollX,width)){
+                final int invisibleWidth = caculate(scrollX +distance,0,width);
+                visibleHeaderScope = width - invisibleWidth;
+                if(null!=iRefreshHeader)iRefreshHeader.onVisibleScopeChanged(visibleHeaderScope);
+            }
+            scrollX += distance;
+        }
+
+        private void handleVerticalScroll(int distance){
+            final int height = mRefreshHeader.getHeight();
+            if(isHeaderShown(scrollY,height)){
+                final int invisibleHeight = caculate(scrollY +distance,0,height);
+                visibleHeaderScope = height - invisibleHeight;
+                if(null!=iRefreshHeader)iRefreshHeader.onVisibleScopeChanged(visibleHeaderScope);
+            }
+            scrollY += distance;
+        }
+
+        /**
+         *是否满足下拉刷新的最小滑动距离
+         * @return
+         */
+        private boolean isEnughToRefresh(int scope){
+            if(null != iRefreshHeader){
+                return iRefreshHeader.isEnughToRefresh();
+            }
+            return visibleHeaderScope >= scope/2;
         }
 
         /**
@@ -185,7 +247,12 @@ public class RecyclerWrapper{
          * @return
          */
         private boolean isHeaderShown(){
-            return null!=mRefreshHeader && scrollY <= mRefreshHeader.getHeight();
+            return null!=mRefreshHeader &&
+                    (mOrientation==OrientationHelper.HORIZONTAL && scrollX<=mRefreshHeader.getWidth()
+                            || mOrientation==OrientationHelper.VERTICAL && scrollY <= mRefreshHeader.getHeight());
+        }
+        private boolean isHeaderShown(int curr,int scope){
+            return null!=mRefreshHeader && curr<scope;
         }
 
         /**
@@ -212,7 +279,10 @@ public class RecyclerWrapper{
                 mRecyclerView.getViewTreeObserver().removeOnGlobalLayoutListener(this);
             }
 
-            if(null!=mRefreshHeader) visibleHeaderHeight = mRefreshHeader.getHeight();
+            if(null!=mRefreshHeader)
+                visibleHeaderScope = mOrientation==OrientationHelper.VERTICAL?
+                        mRefreshHeader.getHeight():
+                        mRefreshHeader.getWidth();
 
             onRefresh();
         }

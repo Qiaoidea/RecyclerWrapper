@@ -1,6 +1,6 @@
 ## RecyclerView 下拉刷新（pullToRefresh）和加载更多(LoadMore)
-　　
-　　　方便快速的实现为RecyclerView添加下拉刷新头部和加载更多尾部，一行代码的事儿。
+
+　　方便快速的实现为RecyclerView添加下拉刷新头部和加载更多尾部，一行代码的事儿。
 
 ![演示动画](raw/RecyclerDemo.gif)
 
@@ -25,6 +25,7 @@
 ```
 
 OK,Done.App可以快速应用起来头尾了。
+
 
 　　当然，如果只是简单添加 ``Header``
 ```

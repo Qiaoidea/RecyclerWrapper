@@ -5,7 +5,9 @@ package me.qiao.wrapper;
  * function：
  */
 public interface IRefreshHeader {
-    void onVisibleHeightChanged(int visibleHeight);
+    void onVisibleScopeChanged(int visibleHeight);
+
+    boolean isEnughToRefresh();
 
     void onRefresh();
 

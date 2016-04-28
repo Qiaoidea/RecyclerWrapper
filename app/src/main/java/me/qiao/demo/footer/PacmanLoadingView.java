@@ -22,7 +22,7 @@ public class PacmanLoadingView extends View{
     private int alpha;
     private float degrees;
 
-    private ValueAnimator rotateAnim,ciclerAnim;
+    private ValueAnimator ciclerAnim;
 
     private float x,y,width;
     private RectF rectF;
@@ -56,7 +56,8 @@ public class PacmanLoadingView extends View{
             x = getWidth() / 2;
             y = getHeight() / 2;
             width = Math.min(x, y);
-            rectF=new RectF(-width/1.7f,-width/1.7f,width/1.7f,width/1.7f);
+            final float circle = width/1.7f;
+            rectF=new RectF(x-circle,y-circle,x+circle,y+circle);
         }
     }
 
@@ -69,67 +70,36 @@ public class PacmanLoadingView extends View{
 
     private void drawPacman(Canvas canvas,Paint paint){
         paint.setAlpha(255);
-
-        canvas.save();
-        canvas.translate(x, y);
-        canvas.rotate(degrees);
-        canvas.drawArc(rectF, 0, 270, true, paint);
-        canvas.restore();
-
-        canvas.save();
-        canvas.translate(x, y);
-        canvas.rotate(-degrees);
-        canvas.drawArc(rectF,90,270,true,paint);
-        canvas.restore();
+        canvas.drawArc(rectF,degrees,360-2*degrees,true,paint);
     }
-
 
     private void drawCircle(Canvas canvas, Paint paint) {
         paint.setAlpha(alpha);
         canvas.drawCircle(translateX, y, width/4, paint);
     }
 
-    public void createAnimation() {
-        ciclerAnim=ValueAnimator.ofFloat(1,0);
-        ciclerAnim.setDuration(650);
-        ciclerAnim.setInterpolator(new LinearInterpolator());
-        ciclerAnim.setRepeatCount(-1);
-        ciclerAnim.addUpdateListener(new ValueAnimator.AnimatorUpdateListener() {
-
-            @Override
-            public void onAnimationUpdate(ValueAnimator animation) {
-                float ratio = (float) animation.getAnimatedValue();
-                translateX = x + width*2*ratio;
-                alpha = (int)(122*(1+ratio));
-                postInvalidate();
-            }
-        });
-        ciclerAnim.start();
-
-        rotateAnim=ValueAnimator.ofFloat(0, 45, 0);
-        rotateAnim.setDuration(650);
-        rotateAnim.setRepeatCount(-1);
-        rotateAnim.addUpdateListener(new ValueAnimator.AnimatorUpdateListener() {
-            @Override
-            public void onAnimationUpdate(ValueAnimator animation) {
-                degrees = (float) animation.getAnimatedValue();
-                postInvalidate();
-            }
-        });
-        rotateAnim.start();
-    }
-
     public void startAnim(){
-        if(rotateAnim==null) {
-            createAnimation();
-        }else {
-            ciclerAnim.start();
-            rotateAnim.start();
+        if(ciclerAnim==null) {
+            ciclerAnim=ValueAnimator.ofFloat(1,0);
+            ciclerAnim.setDuration(650);
+            ciclerAnim.setInterpolator(new LinearInterpolator());
+            ciclerAnim.setRepeatCount(-1);
+            ciclerAnim.addUpdateListener(new ValueAnimator.AnimatorUpdateListener() {
+
+                @Override
+                public void onAnimationUpdate(ValueAnimator animation) {
+                    float ratio = (float) animation.getAnimatedValue();
+                    translateX = x + width*2*ratio;
+                    alpha = (int)(122*(1+ratio));
+                    degrees = Math.abs(0.5f-ratio)*90f;
+                    postInvalidate();
+                }
+            });
         }
+        ciclerAnim.start();
     }
 
     public void stopAnim(){
         ciclerAnim.cancel();
-        rotateAnim.cancel();
     }
 }
